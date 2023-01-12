@@ -1,0 +1,43 @@
+@hostname = localhost
+@port = 3000
+@host = {{hostname}}:{{port}}
+@contentType = application/json
+
+POST http://{{host}}/envelopes
+Content-Type:{{contentType}}
+
+{
+  "budget": 1000,
+  "title": "Budget 2"
+}
+
+###
+
+GET http://{{host}}/envelopes
+
+###
+
+GET http://{{host}}/envelopes/11
+
+###
+
+PUT http://{{host}}/envelopes/1
+Content-Type:{{contentType}}
+
+{
+  "budget": 5000,
+  "title": "Budget 3"
+}
+
+###
+
+DELETE http://{{host}}/envelopes/3
+
+###
+
+POST http://{{host}}/envelopes/transfer/1/2
+Content-Type:{{contentType}}
+
+{
+  "value": 100
+}

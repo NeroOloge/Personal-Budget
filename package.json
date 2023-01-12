@@ -1,0 +1,23 @@
+{
+  "name": "personal-budget",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://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@github.com/NeroOloge/Personal-Budget.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NeroOloge/Personal-Budget/issues"
+  },
+  "homepage": "https://github.com/NeroOloge/Personal-Budget#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
