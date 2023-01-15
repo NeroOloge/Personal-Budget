@@ -1,59 +1,151 @@
 const express = require("express");
+const pool = require("./db");
 const app = express();
 app.use(express.json());
 
-const envelopes = [
-  {
-    id: 1,
-    budget: 1000,
-    title: "Budget 1",
-  },
-];
-
-app.post("/envelopes", (req, res) => {
-  const lastId = envelopes[envelopes.length - 1].id;
-  const body = { id: lastId + 1, ...req.body };
-  envelopes.push(body);
-  res.status(201).json({ envelope: body });
+app.post("/envelopes", async (req, res) => {
+  try {
+    const { budget, title } = req.body;
+    const envelope = await pool.query(
+      "INSERT INTO envelopes (budget, title) VALUES ($1, $2) RETURNING *",
+      [budget, title]
+    );
+    res.status(201).json({ msg: "Envelope added", envelope: envelope.rows[0] });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Error");
+  }
 });
 
-app.get("/envelopes", (_, res) => {
-  res.json({ envelopes });
+app.get("/envelopes", async (_, res) => {
+  try {
+    const envelopes = await pool.query(
+      "SELECT * FROM envelopes ORDER BY id ASC"
+    );
+    res.json({ envelopes: envelopes.rows });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Error");
+  }
 });
 
-app.get("/envelopes/:id", (req, res) => {
-  const envelope = envelopes.find((e) => e.id == req.params.id);
-  if (!envelope) return res.status(404).json({ msg: "Not found" });
-  res.json({ envelope });
+app.get("/envelopes/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const envelopes = await pool.query(
+      "SELECT * FROM envelopes WHERE id = $1",
+      [id]
+    );
+    res.json({ envelope: envelopes.rows[0] });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Error");
+  }
 });
 
-app.put("/envelopes/:id", (req, res) => {
-  const body = req.body;
-  const envelopeId = envelopes.findIndex((e) => e.id == req.params.id);
-  if (envelopeId < 0) return res.status(404).json({ msg: "Not found" });
-  envelopes[envelopeId] = { id: parseInt(req.params.id), ...body };
-  res.json({ envelope: envelopes[envelopeId] });
+app.put("/envelopes/:id", async (req, res) => {
+  try {
+    const { budget, title } = req.body;
+    const id = parseInt(req.params.id);
+    const envelope = await pool.query(
+      "UPDATE envelopes SET budget = $1, title = $2 WHERE id = $3 RETURNING *",
+      [budget, title, id]
+    );
+    res.json({ msg: `Envelope updated`, envelope: envelope.rows[0] });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Error");
+  }
 });
 
-app.delete("/envelopes/:id", (req, res) => {
-  const envelopeId = envelopes.findIndex((e) => e.id == req.params.id);
-  if (envelopeId < 0) return res.status(404).json({ msg: "Not found" });
-  const envelope = envelopes[envelopeId];
-  envelopes.splice(envelopeId, 1);
-  res.json({ envelope });
+app.delete("/envelopes/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await pool.query("DELETE FROM envelopes WHERE id = $1", [id]);
+    res.json({ msg: `Envelope deleted` });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Error");
+  }
 });
 
-app.post("/envelopes/transfer/:from/:to", (req, res) => {
-  const { value } = req.body;
-  const { from, to } = req.params;
-  const fromIdx = envelopes.findIndex((e) => e.id == from);
-  const toIdx = envelopes.findIndex((e) => e.id == to);
-  if (fromIdx < 0 || toIdx < 0)
-    return res.status(404).json({ msg: "Not found" });
-  envelopes[fromIdx].budget -= value;
-  envelopes[toIdx].budget += value;
-  res.json({ msg: "Budget successfully transferred" });
+app.post("/envelopes/transfer/:from/:to", async (req, res) => {
+  try {
+    const value = parseInt(req.body.value);
+    const { from, to } = req.params;
+    await pool.query(
+      "UPDATE envelopes SET budget = budget - $1 WHERE id = $2",
+      [value, from]
+    );
+    await pool.query(
+      "UPDATE envelopes SET budget = budget + $1 WHERE id = $2",
+      [value, to]
+    );
+    res.json({ msg: "Budget successfully transferred" });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Error");
+  }
 });
+
+app
+  .route("/transactions")
+  .post(async (req, res) => {
+    try {
+      const { date, amount, recipient, envelopeId } = req.body;
+      const transaction = await pool.query(
+        "INSERT INTO transactions (date, amount, recipient, envelopeId) VALUES ($1, $2, $3, $4) RETURNING *",
+        [date, amount, recipient, envelopeId]
+      );
+      res
+        .status(201)
+        .json({ msg: "Transaction added", transaction: transaction.rows[0] });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json("Error");
+    }
+  })
+  .get(async (_, res) => {
+    try {
+      const transactions = await pool.query(
+        "SELECT * FROM transactions ORDER BY id ASC"
+      );
+      res.json({ transactions: transactions.rows });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json("Error");
+    }
+  });
+
+app
+  .route("/transactions/:id")
+  .put(async (req, res) => {
+    try {
+      const { date, amount, recipient, envelopeId } = req.body;
+      const id = parseInt(req.params.id);
+      const transaction = await pool.query(
+        "UPDATE transactions SET date = $1, amount = $2, recipient = $3, envelopeId = $4 WHERE id = $5 RETURNING *",
+        [date, amount, recipient, envelopeId, id]
+      );
+      res.json({
+        msg: `Transaction updated`,
+        transaction: transaction.rows[0],
+      });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json("Error");
+    }
+  })
+  .delete(async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await pool.query("DELETE FROM transactions WHERE id = $1", [id]);
+      res.json({ msg: `Transaction deleted` });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json("Error");
+    }
+  });
 
 app.get("/", (_, res) => {
   res.json("Hello World");

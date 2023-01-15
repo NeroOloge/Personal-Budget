@@ -7,8 +7,8 @@ POST http://{{host}}/envelopes
 Content-Type:{{contentType}}
 
 {
-  "budget": 1000,
-  "title": "Budget 2"
+  "budget": 4500,
+  "title": "Budget 5"
 }
 
 ###
@@ -17,21 +17,21 @@ GET http://{{host}}/envelopes
 
 ###
 
-GET http://{{host}}/envelopes/11
+GET http://{{host}}/envelopes/3
 
 ###
 
-PUT http://{{host}}/envelopes/1
+PUT http://{{host}}/envelopes/2
 Content-Type:{{contentType}}
 
 {
   "budget": 5000,
-  "title": "Budget 3"
+  "title": "Budget 2"
 }
 
 ###
 
-DELETE http://{{host}}/envelopes/3
+DELETE http://{{host}}/envelopes/6
 
 ###
 
@@ -40,4 +40,16 @@ Content-Type:{{contentType}}
 
 {
   "value": 100
+}
+
+###
+
+POST http://{{host}}/transactions
+Content-Type:{{contentType}}
+
+{
+  "date": "2023-01-15",
+  "amount": "500",
+  "recipient": "Nero",
+  "envelopeId": 2
 }
